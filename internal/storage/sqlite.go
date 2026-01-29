@@ -6,9 +6,8 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/youssef28m/LockIn/internal/core"
+	"github.com/youssef28m/LockIn/internal/models"
 )
 
 func Connect() *sql.DB {
@@ -108,16 +107,16 @@ func CreateSession(db *sql.DB, startTime int64, durationSeconds int, active bool
 	return id, nil
 }
 
-func GetAllSessions(db *sql.DB) ([]core.Session, error) {
+func GetAllSessions(db *sql.DB) ([]models.Session, error) {
 	rows, err := db.Query("SELECT id, start_time, duration_seconds, active FROM sessions")
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var sessions []core.Session
+	var sessions []models.Session
 	for rows.Next() {
-		var session core.Session
+		var session models.Session
 		var activeInt int
 		err := rows.Scan(&session.ID, &session.StartTime, &session.DurationSeconds, &activeInt)
 		session.Active = activeInt != 0
@@ -131,10 +130,10 @@ func GetAllSessions(db *sql.DB) ([]core.Session, error) {
 	return sessions, rows.Err()
 }
 
-func GetSessionByID(db *sql.DB, id int64) (*core.Session, error) {
+func GetSessionByID(db *sql.DB, id int64) (*models.Session, error) {
 	
 	row := db.QueryRow("SELECT id, start_time, duration_seconds, active FROM sessions WHERE id = ?", id)
-	var session core.Session
+	var session models.Session
 	var activeInt int
 	err := row.Scan(&session.ID, &session.StartTime, &session.DurationSeconds, &activeInt)
 	session.Active = activeInt != 0
@@ -143,4 +142,30 @@ func GetSessionByID(db *sql.DB, id int64) (*core.Session, error) {
 	}
 
 	return &session, nil
+}
+
+func UpdateSession(db *sql.DB, session models.Session) error {
+	query := `
+	UPDATE sessions
+	SET start_time = ?, duration_seconds = ?, active = ?
+	WHERE id = ?
+	`
+
+	result ,err := db.Exec(query, session.StartTime, session.DurationSeconds, session.Active, session.ID)
+	if err != nil {
+		return err
+	}
+	
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	
+	if rowsAffected == 0 {
+		return fmt.Errorf("no user found with id %d", session.ID)
+	}
+	
+	return nil
+
 }
