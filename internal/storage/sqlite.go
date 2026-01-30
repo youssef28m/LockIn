@@ -45,35 +45,31 @@ func CreateDB() {
 	if err != nil {
 		log.Fatal("Error creating sessions table:", err)
 	}
-	fmt.Println("Sessions table created successfully")
+
 
 	// Create blocked_sites table
 	blockedSitesSQL := `CREATE TABLE IF NOT EXISTS blocked_sites (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		session_id INTEGER NOT NULL,
-		domain TEXT NOT NULL,
-		FOREIGN KEY(session_id) REFERENCES sessions(id) ON DELETE CASCADE
+		domain TEXT NOT NULL
 	);`
 
 	_, err = db.Exec(blockedSitesSQL)
 	if err != nil {
 		log.Fatal("Error creating blocked_sites table:", err)
 	}
-	fmt.Println("Blocked sites table created successfully")
+
 
 	// Create blocked_apps table
 	blockedAppsSQL := `CREATE TABLE IF NOT EXISTS blocked_apps (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		session_id INTEGER NOT NULL,
-		process_name TEXT NOT NULL,
-		FOREIGN KEY(session_id) REFERENCES sessions(id) ON DELETE CASCADE
+		process_name TEXT NOT NULL
 	);`
 
 	_, err = db.Exec(blockedAppsSQL)
 	if err != nil {
 		log.Fatal("Error creating blocked_apps table:", err)
 	}
-	fmt.Println("Blocked apps table created successfully")
+
 }
 
 //************************************************************//
@@ -131,7 +127,7 @@ func GetAllSessions(db *sql.DB) ([]models.Session, error) {
 }
 
 func GetSessionByID(db *sql.DB, id int64) (*models.Session, error) {
-	
+
 	row := db.QueryRow("SELECT id, start_time, duration_seconds, active FROM sessions WHERE id = ?", id)
 	var session models.Session
 	var activeInt int
@@ -151,21 +147,224 @@ func UpdateSession(db *sql.DB, session models.Session) error {
 	WHERE id = ?
 	`
 
-	result ,err := db.Exec(query, session.StartTime, session.DurationSeconds, session.Active, session.ID)
+	result, err := db.Exec(query, session.StartTime, session.DurationSeconds, session.Active, session.ID)
 	if err != nil {
 		return err
 	}
-	
+
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
 		return err
 	}
 
-	
 	if rowsAffected == 0 {
 		return fmt.Errorf("no user found with id %d", session.ID)
 	}
-	
+
 	return nil
 
+}
+
+func DeleteSession(db *sql.DB, id int64) error {
+	query := `DELETE FROM sessions WHERE id = ?`
+
+	result, err := db.Exec(query, id)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("no session found with id %d", id)
+	}
+
+	return nil
+}
+
+//***********************************************************//
+// Blocked Sites CRUD Operations
+//***********************************************************//
+
+func CreateBlockedSite(db *sql.DB, domain string) (int64, error) {
+	result, err := db.Exec(
+		`INSERT INTO blocked_sites (domain) VALUES (?)`,
+		domain,
+	)
+	if err != nil {
+		return 0, err
+	}
+
+	id, err := result.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+
+	return id, nil
+}
+
+func GetAllBlockedSites(db *sql.DB) ([]models.BlockedSite, error) {
+	rows, err := db.Query("SELECT id, domain FROM blocked_sites")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var sites []models.BlockedSite
+	for rows.Next() {
+		var site models.BlockedSite
+		err := rows.Scan(&site.ID, &site.Domain)
+		if err != nil {
+			return nil, err
+		}
+		sites = append(sites, site)
+	}
+
+	return sites, rows.Err()
+}
+
+func GetBlockedSiteByID(db *sql.DB, id int64) (*models.BlockedSite, error) {
+	row := db.QueryRow("SELECT id, domain FROM blocked_sites WHERE id = ?", id)
+	var site models.BlockedSite
+	err := row.Scan(&site.ID, &site.Domain)
+	if err != nil {
+		return nil, err
+	}
+
+	return &site, nil
+}
+
+func UpdateBlockedSite(db *sql.DB, site models.BlockedSite) error {
+	query := `UPDATE blocked_sites SET domain = ? WHERE id = ?`
+
+	result, err := db.Exec(query, site.Domain, site.ID)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("no blocked site found with id %d", site.ID)
+	}
+
+	return nil
+}
+
+func DeleteBlockedSite(db *sql.DB, id int64) error {
+	query := `DELETE FROM blocked_sites WHERE id = ?`
+
+	result, err := db.Exec(query, id)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("no blocked site found with id %d", id)
+	}
+
+	return nil
+}
+
+//***********************************************************//
+// Blocked Apps CRUD Operations
+//***********************************************************//
+
+func CreateBlockedApp(db *sql.DB, processName string) (int64, error) {
+	result, err := db.Exec(
+		`INSERT INTO blocked_apps (process_name) VALUES (?)`,
+		processName,
+	)
+	if err != nil {
+		return 0, err
+	}
+
+	id, err := result.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+
+	return id, nil
+}
+
+func GetAllBlockedApps(db *sql.DB) ([]models.BlockedApp, error) {
+	rows, err := db.Query("SELECT id, process_name FROM blocked_apps")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var apps []models.BlockedApp
+	for rows.Next() {
+		var app models.BlockedApp
+		err := rows.Scan(&app.ID, &app.ProcessName)
+		if err != nil {
+			return nil, err
+		}
+		apps = append(apps, app)
+	}
+
+	return apps, rows.Err()
+}
+
+func GetBlockedAppByID(db *sql.DB, id int64) (*models.BlockedApp, error) {
+	row := db.QueryRow("SELECT id, process_name FROM blocked_apps WHERE id = ?", id)
+	var app models.BlockedApp
+	err := row.Scan(&app.ID, &app.ProcessName)
+	if err != nil {
+		return nil, err
+	}
+
+	return &app, nil
+}
+
+func UpdateBlockedApp(db *sql.DB, app models.BlockedApp) error {
+	query := `UPDATE blocked_apps SET process_name = ? WHERE id = ?`
+
+	result, err := db.Exec(query, app.ProcessName, app.ID)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("no blocked app found with id %d", app.ID)
+	}
+
+	return nil
+}
+
+func DeleteBlockedApp(db *sql.DB, id int64) error {
+	query := `DELETE FROM blocked_apps WHERE id = ?`
+
+	result, err := db.Exec(query, id)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("no blocked app found with id %d", id)
+	}
+
+	return nil
 }

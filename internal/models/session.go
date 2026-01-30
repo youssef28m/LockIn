@@ -5,10 +5,10 @@ import "time"
 // TODO: Add session functionality
 
 type Session struct {
-    ID              int64
-    StartTime       int64
-    DurationSeconds int64
-    Active          bool
+	ID              int64
+	StartTime       int64
+	DurationSeconds int64
+	Active          bool
 }
 
 func (s *Session) Remaining() int64 {
@@ -25,7 +25,6 @@ func (s *Session) Remaining() int64 {
 func (s *Session) Expired() bool {
 	return s.Remaining() == 0
 }
-
 
 func (s *Session) RemainingMinutes() int64 {
 	return s.Remaining() / 60
