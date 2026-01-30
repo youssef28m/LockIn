@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"regexp"
 	"strings"
-
 	"github.com/youssef28m/LockIn/internal/storage"
+	"github.com/youssef28m/LockIn/internal/validator"
 )
 
 var hostsPath = `C:\Windows\System32\drivers\etc\hosts`
@@ -45,7 +44,7 @@ func UnblockWebsites(db *sql.DB) error {
 }
 
 func AddBlockedSite(db *sql.DB, domain string) error {
-	validDomain := IsValidDomain(domain)
+	validDomain := validator.IsValidDomain(domain)
 	if !validDomain {
 		return fmt.Errorf("invalid domain format")
 	}
@@ -58,31 +57,6 @@ func AddBlockedSite(db *sql.DB, domain string) error {
 	return nil
 }
 
-func IsValidDomain(domain string) bool {
-
-	var domainRegex = regexp.MustCompile(
-		`^([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}$`,
-	)
-
-	domain = strings.TrimSpace(domain)
-
-	// Reject protocol
-	if strings.Contains(domain, "://") {
-		return false
-	}
-
-	// Reject paths
-	if strings.Contains(domain, "/") {
-		return false
-	}
-
-	// Regex format check
-	if !domainRegex.MatchString(domain) {
-		return false
-	}
-
-	return true
-}
 
 func BlockSite(domain string) error {
 	entry := "127.0.0.1    " + domain

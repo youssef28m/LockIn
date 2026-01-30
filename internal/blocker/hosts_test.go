@@ -5,6 +5,8 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/youssef28m/LockIn/internal/validator"
 )
 
 // Test domain validation
@@ -26,7 +28,7 @@ func TestIsValidDomain(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			result := IsValidDomain(test.domain)
+			result := validator.IsValidDomain(test.domain)
 			if result != test.expected {
 				t.Errorf("IsValidDomain(%s) = %v, expected %v", test.domain, result, test.expected)
 			}
