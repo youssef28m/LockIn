@@ -57,3 +57,4 @@ func InitializeScheduler(db *sql.DB) {
 
 	}
 }
+
