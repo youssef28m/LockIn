@@ -7,9 +7,10 @@ import (
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
+	"github.com/common-nighthawk/go-figure"
+	"github.com/youssef28m/LockIn/internal/ui/common"
 )
-
-
 
 // implement help keys
 type homeKeys struct {
@@ -66,6 +67,8 @@ func (m HomeModel) Init() tea.Cmd { return nil }
 
 var choices = []string{"Add website to block list", "Set Timer"}
 
+
+
 func (m HomeModel) Update(msg tea.Msg) (HomeModel, tea.Cmd) {
 
 	switch msg := msg.(type) {
@@ -74,6 +77,12 @@ func (m HomeModel) Update(msg tea.Msg) (HomeModel, tea.Cmd) {
 		switch msg.String() {
 		case "enter":
 			m.choice = choices[m.cursor]
+			switch m.choice {
+			case "Add website to block list":
+				return m, common.Goto(common.BlockSitesPage)
+			case "Set Timer":
+				return m, common.Goto(common.SetTimerPage)
+			}
 		case "q", "Q", "ctrl+c":
 			return m, tea.Quit
 		case "down", "k":
@@ -93,18 +102,29 @@ func (m HomeModel) Update(msg tea.Msg) (HomeModel, tea.Cmd) {
 func (m HomeModel) View() string {
 	var b strings.Builder
 
-	b.WriteString("\n🔒  LockIn\n")
-	b.WriteString("====================\n\n")
+	
+    myFigure := figure.NewFigure("LockIn", "", true)
+    titleASCII := common.TitleStyle.Render(myFigure.String())
+
+	b.WriteString(titleASCII + "\n")
+    b.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Render("==================================") + "\n\n")
 
 	
-	for i, c := range choices {
-		cursor := "   "
-		if m.cursor == i {
-			cursor = "➜  "
-		}
-		b.WriteString(fmt.Sprintf("%s%s\n", cursor, c))
-	}
+	// 2. Render List
+    for i, c := range choices {
+        cursor := "  "
+        label := c
 
+        if m.cursor == i {
+            cursor = common.CursorStyle.Render("➜ ")
+            label = common.SelectedItemStyle.Render(c)
+        }
+        
+        b.WriteString(fmt.Sprintf("%s %s\n", cursor, label))
+    }
 
-	return b.String()
+    return b.String()
 }
+
+
+

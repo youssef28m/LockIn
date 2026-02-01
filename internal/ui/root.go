@@ -6,6 +6,7 @@ import (
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/youssef28m/LockIn/internal/ui/common"
 	"github.com/youssef28m/LockIn/internal/ui/pages"
 )
 
@@ -18,7 +19,6 @@ const (
     BlockSitesPage
 )
 
-type NavigateMsg Page
 
 // globalKeys holds keybindings that work on every page.
 type globalKeys struct {
@@ -89,9 +89,9 @@ func (m *RootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
     switch msg := msg.(type) {   
- 
-        case NavigateMsg:
-            m.page = Page(msg)
+        
+        case common.NavigateMsg:
+            m.page = Page(msg.Target)
             return m, nil
 
         case tea.WindowSizeMsg:
@@ -101,6 +101,7 @@ func (m *RootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
     }
 
     var cmd tea.Cmd
+
     switch m.page {
     case HomePage:
         m.home, cmd = m.home.Update(msg)
