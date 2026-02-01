@@ -4,11 +4,22 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/youssef28m/LockIn/internal/core"
 	"github.com/youssef28m/LockIn/internal/storage"
 	"github.com/youssef28m/LockIn/internal/validator"
 )
 
+func Init() error {
+	storage.CreateDB()
 
+	db := storage.Connect()
+	defer db.Close()
+
+
+	go core.InitializeScheduler(db)
+
+	return nil
+}
 
 
 

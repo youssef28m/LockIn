@@ -1,32 +1,116 @@
 package pages
 
 import (
-	"fmt"
-
+	"github.com/charmbracelet/bubbles/help"
+	"github.com/charmbracelet/bubbles/key"
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
+	"github.com/youssef28m/LockIn/internal/ui/common"
 )
 
-type BlockSitesModel struct{ cursor int }
 
-func NewBlockSitesModel() BlockSitesModel { return BlockSitesModel{} }
+type blockKeys struct {
+	Help key.Binding
+	Quit key.Binding
+	Return key.Binding
+	Enter key.Binding
+}
+func (k blockKeys) ShortHelp() []key.Binding {
+	return []key.Binding{k.Help, k.Quit}
+}
+func (k blockKeys) FullHelp() [][]key.Binding {
+	return [][]key.Binding{
+		{k.Return, k.Enter},
+		{k.Help, k.Quit},
+	}
+}
+
+var bKeys = blockKeys{
+	Help: key.NewBinding(
+		key.WithKeys("?"),
+		key.WithHelp("?", "toggle help"),
+	),
+	Quit: key.NewBinding(
+		key.WithKeys("q", "ctrl+c"),
+		key.WithHelp("q", "quit"),
+	),
+	Return: key.NewBinding(
+		key.WithKeys("esc"),
+		key.WithHelp("esc", "return to home"),
+	),
+	Enter: key.NewBinding(
+		key.WithKeys("enter"),
+		key.WithHelp("enter", "add site"),
+	),
+}
+
+
+
+type BlockSitesModel struct {
+    textInput textinput.Model
+    err       error
+}
+
+func (m BlockSitesModel) Keys() help.KeyMap {
+    return bKeys
+}
+
+func NewBlockSitesModel() BlockSitesModel {
+    ti := textinput.New()
+    ti.Placeholder = "example.com"
+    ti.Focus() // Start with the input active
+    ti.CharLimit = 64
+    ti.Width = 30
+    
+    // Style the input components
+    ti.PromptStyle = lipgloss.NewStyle().Foreground(common.PrimaryColor)
+    ti.TextStyle = lipgloss.NewStyle().Foreground(common.AccentColor)
+    ti.PlaceholderStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+
+    return BlockSitesModel{
+        textInput: ti,
+    }
+}
 
 func (m BlockSitesModel) Init() tea.Cmd { return nil }
 
 func (m BlockSitesModel) Update(msg tea.Msg) (BlockSitesModel, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch msg.String() {
-		case "down":
-			m.cursor++
-		case "up":
-			if m.cursor > 0 {
-				m.cursor--
-			}
-		}
-	}
-	return m, nil
+    var cmd tea.Cmd
+
+    switch msg := msg.(type) {
+    case tea.KeyMsg:
+        switch msg.String() {
+        case "enter":
+            //domain := m.textInput.Value()
+            // Here you would trigger your "Add Site" logic
+            
+			m.textInput.Reset()
+            return m, nil
+            
+        case "esc":
+            return m, common.Goto(common.HomePage)
+        }
+    }
+
+    // This line is crucial: it updates the cursor and text state
+    m.textInput, cmd = m.textInput.Update(msg)
+    return m, cmd
 }
 
+var (
+    inputContainerStyle = lipgloss.NewStyle().
+        Border(lipgloss.RoundedBorder()).
+        BorderForeground(common.PrimaryColor).
+        Padding(1, 1).
+        MarginTop(1)
+)
+
 func (m BlockSitesModel) View() string {
-	return fmt.Sprintf("🔒 Block Sites\n\nCursor: %d\n\nPress q → Quit", m.cursor)
+    return lipgloss.JoinVertical(
+        lipgloss.Left,
+        common.TitleStyle.Render("\nAdd Website to block list\n"),
+        "\nEnter the domain you want to restrict:",
+        inputContainerStyle.Render(m.textInput.View()),
+    )
 }

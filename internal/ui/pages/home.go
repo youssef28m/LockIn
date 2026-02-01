@@ -107,7 +107,7 @@ func (m HomeModel) View() string {
     titleASCII := common.TitleStyle.Render(myFigure.String())
 
 	b.WriteString(titleASCII + "\n")
-    b.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Render("==================================") + "\n\n")
+    b.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Render("==========================================") + "\n\n")
 
 	
 	// 2. Render List

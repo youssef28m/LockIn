@@ -2,17 +2,28 @@ package common
 
 import "github.com/charmbracelet/lipgloss"
 
-// Styles
 var (
+	PrimaryColor   = lipgloss.Color("#4361EE") // Royal Blue
+	AccentColor    = lipgloss.Color("#A8DADC") // Ice Blue
+	SuccessColor   = lipgloss.Color("#dc596f") // Dusty Lavender
+
 	TitleStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#50FA7B")).
+			Foreground(SuccessColor).
 			Bold(true).
-			MarginLeft(2)
+			MarginLeft(2).
+			Border(lipgloss.NormalBorder(), false, false, false, true).
+			BorderForeground(PrimaryColor).
+			PaddingLeft(1)
 
 	CursorStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#005F87"))
+			Foreground(AccentColor).
+			Bold(true)
 
 	SelectedItemStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color("#FFFFFF")).
-				Bold(true)
+			Foreground(lipgloss.Color("#FFFFFF")).
+			Bold(true)
+
+	LabelStyle = lipgloss.NewStyle().
+			Foreground(PrimaryColor).
+			Italic(true)
 )
