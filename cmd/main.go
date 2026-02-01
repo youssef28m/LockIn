@@ -1,5 +1,18 @@
 package main
 
-func main() {
+import (
+	"fmt"
+	"os"
 
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/youssef28m/LockIn/internal/ui"
+)
+
+
+func main() {
+	p := tea.NewProgram(ui.NewRootModel())
+	if _, err := p.Run(); err != nil {
+		fmt.Printf("Alas, there's been an error: %v", err)
+		os.Exit(1)
+	}
 }
