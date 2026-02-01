@@ -6,6 +6,7 @@ import (
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/youssef28m/LockIn/internal/service"
 	"github.com/youssef28m/LockIn/internal/ui/common"
 	"github.com/youssef28m/LockIn/internal/ui/pages"
 )
@@ -60,18 +61,20 @@ type RootModel struct {
     timer      pages.TimerModel
     blockSites pages.BlockSitesModel
     help       help.Model
+    service    *service.AppService
     width      int
 	height     int
 }
 
-func NewRootModel() *RootModel {
+func NewRootModel(service *service.AppService) *RootModel {
     return &RootModel{
         page:       HomePage,
-        home:       pages.NewHomeModel(),
+        home:       pages.NewHomeModel(service),
         setTimer:   pages.NewSetTimerModel(),
         timer:      pages.NewTimerModel(),
-        blockSites: pages.NewBlockSitesModel(),
+        blockSites: pages.NewBlockSitesModel(service),
         help:       help.New(),
+        service:    service,
     }
 }
 

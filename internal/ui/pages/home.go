@@ -9,6 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/common-nighthawk/go-figure"
+	"github.com/youssef28m/LockIn/internal/service"
 	"github.com/youssef28m/LockIn/internal/ui/common"
 )
 
@@ -54,6 +55,7 @@ type HomeModel struct {
 	cursor int
 	choice string
 	keys   homeKeys
+	service *service.AppService
 }
 
 func (m HomeModel) Keys() help.KeyMap {
@@ -61,7 +63,11 @@ func (m HomeModel) Keys() help.KeyMap {
 }
 
 
-func NewHomeModel() HomeModel { return HomeModel{} }
+func NewHomeModel(s *service.AppService) HomeModel {
+    return HomeModel{
+        service: s,
+    }
+}
 
 func (m HomeModel) Init() tea.Cmd { return nil }
 

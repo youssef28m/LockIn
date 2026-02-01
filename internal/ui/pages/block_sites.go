@@ -6,9 +6,11 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/youssef28m/LockIn/internal/service"
 	"github.com/youssef28m/LockIn/internal/ui/common"
 )
 
+//================= BlockSites Keys =================//
 
 type blockKeys struct {
 	Help key.Binding
@@ -16,9 +18,11 @@ type blockKeys struct {
 	Return key.Binding
 	Enter key.Binding
 }
+
 func (k blockKeys) ShortHelp() []key.Binding {
 	return []key.Binding{k.Help, k.Quit}
 }
+
 func (k blockKeys) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
 		{k.Return, k.Enter},
@@ -45,18 +49,20 @@ var bKeys = blockKeys{
 	),
 }
 
-
-
-type BlockSitesModel struct {
-    textInput textinput.Model
-    err       error
-}
-
 func (m BlockSitesModel) Keys() help.KeyMap {
     return bKeys
 }
 
-func NewBlockSitesModel() BlockSitesModel {
+//================= BlockSites Model =================//
+
+type BlockSitesModel struct {
+    textInput textinput.Model
+    err       error
+    service   *service.AppService
+}
+
+
+func NewBlockSitesModel(s *service.AppService) BlockSitesModel {
     ti := textinput.New()
     ti.Placeholder = "example.com"
     ti.Focus() // Start with the input active
@@ -70,6 +76,7 @@ func NewBlockSitesModel() BlockSitesModel {
 
     return BlockSitesModel{
         textInput: ti,
+        service: s,
     }
 }
 
@@ -82,8 +89,13 @@ func (m BlockSitesModel) Update(msg tea.Msg) (BlockSitesModel, tea.Cmd) {
     case tea.KeyMsg:
         switch msg.String() {
         case "enter":
-            //domain := m.textInput.Value()
-            // Here you would trigger your "Add Site" logic
+            domain := m.textInput.Value()
+            err := m.service.AddBlockedSite(domain)
+            if err != nil {
+                m.err = err
+            } else {
+                m.err = nil
+            }
             
 			m.textInput.Reset()
             return m, nil
