@@ -70,15 +70,29 @@ func NewRootModel(service *service.AppService) *RootModel {
     return &RootModel{
         page:       HomePage,
         home:       pages.NewHomeModel(service),
-        setTimer:   pages.NewSetTimerModel(),
-        timer:      pages.NewTimerModel(),
+        setTimer:   pages.NewSetTimerModel(service),
+        timer:      pages.NewTimerModel(service),
         blockSites: pages.NewBlockSitesModel(service),
         help:       help.New(),
         service:    service,
     }
 }
 
-func (m *RootModel) Init() tea.Cmd { return nil }
+func (m *RootModel) Init() tea.Cmd { 
+    // Check for active session on startup
+    session, err := m.service.GetActiveSession()
+
+    if err == nil && session.Remaining() > 0 {
+        m.page = TimerPage
+
+        return func() tea.Msg {
+            return common.StartTimerMsg{
+                DurationSeconds: int(session.Remaining()),
+            }
+        }
+    }
+    return nil
+ }
 
 func (m *RootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
     
@@ -101,6 +115,13 @@ func (m *RootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		    m.width = msg.Width
             m.height = msg.Height
             m.help.Width = msg.Width
+
+        case common.StartTimerMsg:
+            m.page = TimerPage
+
+            var cmd tea.Cmd
+            m.timer, cmd = m.timer.Update(msg)
+            return m, cmd
     }
 
     var cmd tea.Cmd

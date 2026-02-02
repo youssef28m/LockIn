@@ -7,7 +7,6 @@ import (
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 	"github.com/common-nighthawk/go-figure"
 	"github.com/youssef28m/LockIn/internal/service"
 	"github.com/youssef28m/LockIn/internal/ui/common"
@@ -71,7 +70,7 @@ func NewHomeModel(s *service.AppService) HomeModel {
 
 func (m HomeModel) Init() tea.Cmd { return nil }
 
-var choices = []string{"Add website to block list", "Set Timer"}
+var choices = []string{"Add website to block list", "Timer", "Set Timer"}
 
 
 
@@ -113,7 +112,6 @@ func (m HomeModel) View() string {
     titleASCII := common.TitleStyle.Render(myFigure.String())
 
 	b.WriteString(titleASCII + "\n")
-    b.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Render("==========================================") + "\n\n")
 
 	
 	// 2. Render List

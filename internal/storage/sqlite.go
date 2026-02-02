@@ -185,6 +185,28 @@ func DeleteSession(db *sql.DB, id int64) error {
 	return nil
 }
 
+func GetActiveSessions(db *sql.DB) ([]models.Session, error) {
+	row, err := db.Query("SELECT id, start_time, duration_seconds, active FROM sessions WHERE active = 1")
+	if err != nil {
+		return nil, err
+	}
+	defer row.Close()
+
+	var sessions []models.Session
+	for row.Next() {
+		var session models.Session
+		var activeInt int
+		err := row.Scan(&session.ID, &session.StartTime, &session.DurationSeconds, &activeInt)
+		session.Active = activeInt != 0
+		if err != nil {
+			return nil, err
+		}
+		sessions = append(sessions, session)
+	}
+
+	return sessions, row.Err()
+}
+
 //***********************************************************//
 // Blocked Sites CRUD Operations
 //***********************************************************//

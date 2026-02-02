@@ -11,6 +11,10 @@ const (
     BlockSitesPage
 )
 
+type StartTimerMsg struct {
+    DurationSeconds int
+}
+
 // The sub-models can return this without knowing about the Root
 type NavigateMsg struct {
     Target Page

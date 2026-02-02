@@ -87,6 +87,8 @@ func (m BlockSitesModel) Update(msg tea.Msg) (BlockSitesModel, tea.Cmd) {
 
     switch msg := msg.(type) {
     case tea.KeyMsg:
+        m.err = nil // Clear previous error on any key press
+
         switch msg.String() {
         case "enter":
             domain := m.textInput.Value()

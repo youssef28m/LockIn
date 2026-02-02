@@ -3,10 +3,12 @@ package service
 import (
 	"database/sql"
 	"fmt"
+	"time"
+
 	"github.com/youssef28m/LockIn/internal/blocker"
+	"github.com/youssef28m/LockIn/internal/models"
 	"github.com/youssef28m/LockIn/internal/storage"
 	"github.com/youssef28m/LockIn/internal/validator"
-	"time"
 )
 
 type AppService struct {
@@ -19,15 +21,38 @@ func NewAppService(db *sql.DB, n chan struct{}) *AppService {
 	return &AppService{db: db, notifier: n}
 }
 
-func (s *AppService) CreateAndStartSession(duration int) error {
+
+func (s *AppService) CreateSession(duration int) error {
 
 	validDuration := validator.IsValidDuration(duration)
 	if !validDuration {
 		return fmt.Errorf("invalid duration")
 	}
-	
+
 	startTime := time.Now().Unix()
 	_, err := storage.CreateSession(s.db, startTime, duration, true)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *AppService) CreateAndStartSession(duration int) error {
+
+	sessions, err := storage.GetAllSessions(s.db)
+	if err != nil {
+		return err
+	}
+
+	// check for any active session
+	for _, session := range sessions {
+		if session.Active && !session.Expired() {
+			return fmt.Errorf("there is already an active session")
+		}
+	}
+
+	err = s.CreateSession(duration)
 	if err != nil {
 		return err
 	}
@@ -41,6 +66,8 @@ func (s *AppService) CreateAndStartSession(duration int) error {
 	}
 	return nil
 }
+
+
 
 func (s *AppService) AddBlockedSite(domain string) error {
 	validDomain := validator.IsValidDomain(domain)
@@ -68,15 +95,26 @@ func (s *AppService) AddBlockedSite(domain string) error {
 	return nil
 }
 
+func (s *AppService) GetActiveSession() (models.Session, error) {
+	sessions, err := storage.GetActiveSessions(s.db)
+	if err != nil {
+		return models.Session{}, err
+	}
+
+	if len(sessions) == 0 {
+		return models.Session{}, fmt.Errorf("no active session found")
+	}
+	return sessions[0], nil
+
+}
+
 func HaveActiveSession(db *sql.DB) (bool, error) {
-	sessions, err := storage.GetAllSessions(db)
+	sessions, err := storage.GetActiveSessions(db)
 	if err != nil {
 		return false, err
 	}
-	for _, session := range sessions {
-		if session.Active && !session.Expired() {
-			return true, nil
-		}
-	}
-	return false, nil
+	
+	return len(sessions) > 0, nil
+
 }
+
