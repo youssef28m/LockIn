@@ -199,10 +199,7 @@ func (k timerKeyBindings) ShortHelp() []key.Binding {
 }
 
 func (k timerKeyBindings) FullHelp() [][]key.Binding {
-	return [][]key.Binding{
-		{k.Exit, k.Start},
-		{k.Switch, k.Up, k.Down},
-	}
+	return [][]key.Binding{{k.Switch, k.Up, k.Down, k.Start, k.Exit}}
 }
 
 var timerKeyMap = timerKeyBindings{
