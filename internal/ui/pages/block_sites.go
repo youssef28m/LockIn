@@ -105,7 +105,7 @@ func (m BlockSitesModel) Update(msg tea.Msg) (BlockSitesModel, tea.Cmd) {
         }
     }
 
-    // This line is crucial: it updates the cursor and text state
+    // updates the cursor and text state
     m.textInput, cmd = m.textInput.Update(msg)
     return m, cmd
 }
@@ -119,10 +119,17 @@ var (
 )
 
 func (m BlockSitesModel) View() string {
+    var errView string
+
+    if m.err != nil {
+        errView = common.ErrorStyle.Render("\n " + m.err.Error())
+    }
+
     return lipgloss.JoinVertical(
         lipgloss.Left,
         common.TitleStyle.Render("\nAdd Website to block list\n"),
         "\nEnter the domain you want to restrict:",
         inputContainerStyle.Render(m.textInput.View()),
+        errView,
     )
 }

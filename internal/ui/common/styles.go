@@ -6,6 +6,8 @@ var (
 	PrimaryColor   = lipgloss.Color("#4361EE") // Royal Blue
 	AccentColor    = lipgloss.Color("#A8DADC") // Ice Blue
 	SuccessColor   = lipgloss.Color("#dc596f") // Dusty Lavender
+	ErrorColor = lipgloss.Color("#E63946") // Soft red
+
 
 	TitleStyle = lipgloss.NewStyle().
 			Foreground(SuccessColor).
@@ -26,4 +28,9 @@ var (
 	LabelStyle = lipgloss.NewStyle().
 			Foreground(PrimaryColor).
 			Italic(true)
+
+	ErrorStyle = lipgloss.NewStyle().
+    Foreground(ErrorColor).
+    Bold(true)
+
 )

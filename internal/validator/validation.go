@@ -30,3 +30,16 @@ func IsValidDomain(domain string) bool {
 
 	return true
 }
+
+
+func IsValidDuration(duration int) bool {
+	if duration <= 0 {
+		return false
+	}
+
+	// limit maximum duration to 24 hours (86400 seconds)
+	if duration > 86400 {
+		return false
+	}
+	return true
+}

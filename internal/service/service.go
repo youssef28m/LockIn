@@ -3,42 +3,44 @@ package service
 import (
 	"database/sql"
 	"fmt"
-	"time"
-
 	"github.com/youssef28m/LockIn/internal/blocker"
 	"github.com/youssef28m/LockIn/internal/storage"
 	"github.com/youssef28m/LockIn/internal/validator"
+	"time"
 )
 
-
 type AppService struct {
-    db      *sql.DB
-    // This channel is the "trigger" we inject
-    notifier chan struct{} 
+	db *sql.DB
+	// This channel is the "trigger" we inject
+	notifier chan struct{}
 }
 
 func NewAppService(db *sql.DB, n chan struct{}) *AppService {
-    return &AppService{db: db, notifier: n}
+	return &AppService{db: db, notifier: n}
 }
 
 func (s *AppService) CreateAndStartSession(duration int) error {
 
+	validDuration := validator.IsValidDuration(duration)
+	if !validDuration {
+		return fmt.Errorf("invalid duration")
+	}
+	
 	startTime := time.Now().Unix()
-    _ ,err := storage.CreateSession(s.db, startTime, duration, true)
-    if err != nil {
-        return err
-    }
+	_, err := storage.CreateSession(s.db, startTime, duration, true)
+	if err != nil {
+		return err
+	}
 
-    // 3. Signal the Scheduler to wake up immediately
-    // We use a non-blocking send so the UI doesn't hang if the scheduler is busy
-    select {
-    case s.notifier <- struct{}{}:
-    default:
-        // Scheduler is already busy/running, no need to queue another signal
-    }
-    return nil
+	// 3. Signal the Scheduler to wake up immediately
+	// We use a non-blocking send so the UI doesn't hang if the scheduler is busy
+	select {
+	case s.notifier <- struct{}{}:
+	default:
+		// Scheduler is already busy/running, no need to queue another signal
+	}
+	return nil
 }
-
 
 func (s *AppService) AddBlockedSite(domain string) error {
 	validDomain := validator.IsValidDomain(domain)
@@ -57,7 +59,6 @@ func (s *AppService) AddBlockedSite(domain string) error {
 		return err
 	}
 	if haveActiveSession {
-		
 		err := blocker.BlockSite(domain)
 		if err != nil {
 			return err
@@ -66,7 +67,6 @@ func (s *AppService) AddBlockedSite(domain string) error {
 
 	return nil
 }
-
 
 func HaveActiveSession(db *sql.DB) (bool, error) {
 	sessions, err := storage.GetAllSessions(db)
