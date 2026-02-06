@@ -103,7 +103,7 @@ func (m BlockSitesModel) Update(msg tea.Msg) (BlockSitesModel, tea.Cmd) {
             return m, nil
             
         case "esc":
-            return m, common.Goto(common.HomePage)
+            return m, common.NavigateTo(common.HomePage)
         }
     }
 

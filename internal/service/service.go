@@ -95,6 +95,20 @@ func (s *AppService) AddBlockedSite(domain string) error {
 	return nil
 }
 
+func (s *AppService) GetBlockedSites() ([]string, error) {
+	blockedSites, err := storage.GetAllBlockedSites(s.db)
+	if err != nil {
+		return nil, err
+	}
+
+	var sites []string
+	for _, site := range blockedSites {
+		sites = append(sites, site.Domain)
+	}
+
+	return sites, nil
+}
+
 func (s *AppService) GetActiveSession() (models.Session, error) {
 	sessions, err := storage.GetActiveSessions(s.db)
 	if err != nil {

@@ -9,10 +9,15 @@ const (
     SetTimerPage
     TimerPage
     BlockSitesPage
+    BlockListPage
 )
 
 type StartTimerMsg struct {
     DurationSeconds int
+}
+
+type BlockedListLoadedMsg struct {
+    Sites []string
 }
 
 // The sub-models can return this without knowing about the Root
@@ -20,7 +25,7 @@ type NavigateMsg struct {
     Target Page
 }
 
-func Goto(p Page) tea.Cmd {
+func NavigateTo(p Page) tea.Cmd {
     return func() tea.Msg {
         return NavigateMsg{Target: p}
     }

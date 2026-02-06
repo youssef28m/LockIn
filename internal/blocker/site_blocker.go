@@ -2,9 +2,9 @@ package blocker
 
 import (
 	"database/sql"
-	"log"
 	"os"
 	"strings"
+	"fmt"
 	"github.com/youssef28m/LockIn/internal/storage"
 )
 
@@ -19,8 +19,7 @@ func BlockWebsites(db *sql.DB) error {
 	for _, site := range sites {
 		err := BlockSite(site.Domain)
 		if err != nil {
-			log.Println("Error blocking site ", err)
-			return err
+			return fmt.Errorf("Error blocking site %w", err)
 		}
 	}
 	return nil
@@ -34,8 +33,7 @@ func UnblockWebsites(db *sql.DB) error {
 	for _, site := range sites {
 		err := UnblockSite(site.Domain)
 		if err != nil {
-			log.Println("Error unblocking site ", err)
-			return err
+			return fmt.Errorf("Error unblocking site %w", err)
 		}
 	}
 	return nil

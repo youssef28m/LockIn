@@ -11,17 +11,160 @@ import (
 	"github.com/youssef28m/LockIn/internal/ui/pages"
 )
 
-type Page int
+// ================================================================
+// Root Model
+// ================================================================
 
-const (
-    HomePage Page = iota
-    SetTimerPage
-    TimerPage
-    BlockSitesPage
-)
+type RootModel struct {
+	page       common.Page
+	home       pages.HomeModel
+	setTimer   pages.SetTimerModel
+	timer      pages.TimerModel
+	blockSites pages.BlockSitesModel
+	blockList  pages.BlockListModel
+	help       help.Model
+	service    *service.AppService
+	width      int
+	height     int
+}
 
+func NewRootModel(service *service.AppService) *RootModel {
+	return &RootModel{
+		page:       common.HomePage,
+		home:       pages.NewHomeModel(service),
+		setTimer:   pages.NewSetTimerModel(service),
+		timer:      pages.NewTimerModel(service),
+		blockSites: pages.NewBlockSitesModel(service),
+		help:       help.New(),
+		service:    service,
+	}
+}
 
-// globalKeys holds keybindings that work on every page.
+// ================================================================
+// Bubble Tea Lifecycle
+// ================================================================
+
+func (m *RootModel) Init() tea.Cmd {
+	session, err := m.service.GetActiveSession()
+
+	if err == nil && session.Remaining() > 0 {
+		m.page = common.TimerPage
+
+		return func() tea.Msg {
+			return common.StartTimerMsg{
+				DurationSeconds: int(session.Remaining()),
+			}
+		}
+	}
+
+	return nil
+}
+
+func (m *RootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	if key, ok := msg.(tea.KeyMsg); ok {
+		switch key.String() {
+		case "ctrl+c", "q":
+			return m, tea.Quit
+		case "?":
+			m.help.ShowAll = !m.help.ShowAll
+		}
+	}
+
+	switch msg := msg.(type) {
+
+	case common.NavigateMsg:
+		m.page = msg.Target
+		return m, nil
+
+	case tea.WindowSizeMsg:
+		m.width = msg.Width
+		m.height = msg.Height
+		m.help.Width = msg.Width
+
+	case common.StartTimerMsg:
+		m.page = common.TimerPage
+
+		var cmd tea.Cmd
+		m.timer, cmd = m.timer.Update(msg)
+		return m, cmd
+	}
+
+	var cmd tea.Cmd
+
+	switch m.page {
+	case common.HomePage:
+		m.home, cmd = m.home.Update(msg)
+	case common.SetTimerPage:
+		m.setTimer, cmd = m.setTimer.Update(msg)
+	case common.TimerPage:
+		m.timer, cmd = m.timer.Update(msg)
+	case common.BlockSitesPage:
+		m.blockSites, cmd = m.blockSites.Update(msg)
+	}
+
+	return m, cmd
+}
+
+func (m *RootModel) View() string {
+	var pageView string
+
+	switch m.page {
+	case common.HomePage:
+		pageView = m.home.View()
+	case common.SetTimerPage:
+		pageView = m.setTimer.View()
+	case common.TimerPage:
+		pageView = m.timer.View()
+	case common.BlockSitesPage:
+		pageView = m.blockSites.View()
+	}
+
+	helpView := m.help.View(m.currentPageKeys())
+
+	pageLines := strings.Count(pageView, "\n") + 1
+	helpLines := strings.Count(helpView, "\n") + 1
+
+	gap := m.height - pageLines - helpLines
+	if gap < 1 {
+		gap = 1
+	}
+
+	return pageView + strings.Repeat("\n", gap) + helpView
+}
+
+// ================================================================
+// Page Helpers
+// ================================================================
+
+func (m *RootModel) currentPageKeys() help.KeyMap {
+	var pageModel any
+
+	switch m.page {
+	case common.HomePage:
+		pageModel = m.home
+	case common.SetTimerPage:
+		pageModel = m.setTimer
+	case common.TimerPage:
+		pageModel = m.timer
+	case common.BlockSitesPage:
+		pageModel = m.blockSites
+	}
+
+	if pk, ok := pageModel.(PageKeys); ok {
+		return pk.Keys()
+	}
+
+	return gKeys
+}
+
+// ================================================================
+// Global Key Bindings
+// ================================================================
+
+type PageKeys interface {
+	Keys() help.KeyMap
+}
+
 type globalKeys struct {
 	Help key.Binding
 	Quit key.Binding
@@ -47,147 +190,3 @@ var gKeys = globalKeys{
 		key.WithHelp("q", "quit"),
 	),
 }
-
-// PageKeys is an interface each page model can optionally implement
-// to expose its own keybindings to the root help footer.
-type PageKeys interface {
-	Keys() help.KeyMap
-}
-
-type RootModel struct {
-    page       Page
-    home       pages.HomeModel
-    setTimer   pages.SetTimerModel
-    timer      pages.TimerModel
-    blockSites pages.BlockSitesModel
-    help       help.Model
-    service    *service.AppService
-    width      int
-	height     int
-}
-
-func NewRootModel(service *service.AppService) *RootModel {
-    return &RootModel{
-        page:       HomePage,
-        home:       pages.NewHomeModel(service),
-        setTimer:   pages.NewSetTimerModel(service),
-        timer:      pages.NewTimerModel(service),
-        blockSites: pages.NewBlockSitesModel(service),
-        help:       help.New(),
-        service:    service,
-    }
-}
-
-func (m *RootModel) Init() tea.Cmd { 
-    // Check for active session on startup
-    session, err := m.service.GetActiveSession()
-
-    if err == nil && session.Remaining() > 0 {
-        m.page = TimerPage
-
-        return func() tea.Msg {
-            return common.StartTimerMsg{
-                DurationSeconds: int(session.Remaining()),
-            }
-        }
-    }
-    return nil
- }
-
-func (m *RootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-    
-    if key, ok := msg.(tea.KeyMsg); ok {
-		switch key.String() {
-		case "ctrl+c", "q":
-			return m, tea.Quit
-		case "?":
-			m.help.ShowAll = !m.help.ShowAll
-		}
-	}
-
-    switch msg := msg.(type) {   
-        
-        case common.NavigateMsg:
-            m.page = Page(msg.Target)
-            return m, nil
-
-        case tea.WindowSizeMsg:
-		    m.width = msg.Width
-            m.height = msg.Height
-            m.help.Width = msg.Width
-
-        case common.StartTimerMsg:
-            m.page = TimerPage
-
-            var cmd tea.Cmd
-            m.timer, cmd = m.timer.Update(msg)
-            return m, cmd
-    }
-
-    var cmd tea.Cmd
-
-    switch m.page {
-    case HomePage:
-        m.home, cmd = m.home.Update(msg)
-    case SetTimerPage:
-        m.setTimer, cmd = m.setTimer.Update(msg)
-    case TimerPage:
-        m.timer, cmd = m.timer.Update(msg)
-    case BlockSitesPage:
-        m.blockSites, cmd = m.blockSites.Update(msg)
-    }
-
-    return m, cmd
-}
-
-
-// currentPageKeys returns the active page's key.Map if it implements PageKeys,
-// otherwise falls back to just the global keys.
-func (m *RootModel) currentPageKeys() help.KeyMap {
-	var pageModel any
-	switch m.page {
-	case HomePage:
-		pageModel = m.home
-	case SetTimerPage:
-		pageModel = m.setTimer
-	case TimerPage:
-		pageModel = m.timer
-	case BlockSitesPage:
-		pageModel = m.blockSites
-	}
-
-	if pk, ok := pageModel.(PageKeys); ok {
-		return pk.Keys()
-	}
-	return gKeys
-}
-
-func (m *RootModel) View() string {
-
-     var pageView string
-
-    switch m.page {
-    case HomePage:
-        pageView = m.home.View()
-    case SetTimerPage:
-        pageView = m.setTimer.View()
-    case TimerPage:
-        pageView = m.timer.View()
-    case BlockSitesPage:
-        pageView = m.blockSites.View()
-    }
-
-    
-    helpView := m.help.View(m.currentPageKeys())
-	
-    // Pin help to the bottom by filling the gap with newlines
-	pageLines := strings.Count(pageView, "\n") + 1
-	helpLines := strings.Count(helpView, "\n") + 1
-	gap := m.height - pageLines - helpLines
-	if gap < 1 {
-		gap = 1
-	}
-
-    return pageView + strings.Repeat("\n", gap) + helpView
-}
-
