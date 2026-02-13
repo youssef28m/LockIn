@@ -54,7 +54,6 @@ func (m HomeModel) Update(msg tea.Msg) (HomeModel, tea.Cmd) {
 				return m, common.NavigateTo(common.SetTimerPage)
 
 			case "Show Block list":
-				fetchBlockedSitesCmd(*m.service)
 				return m, common.NavigateTo(common.BlockListPage)
 			}
 

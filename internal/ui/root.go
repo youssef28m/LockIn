@@ -2,7 +2,7 @@ package ui
 
 import (
 	"strings"
-
+	
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
@@ -35,6 +35,7 @@ func NewRootModel(service *service.AppService) *RootModel {
 		setTimer:   pages.NewSetTimerModel(service),
 		timer:      pages.NewTimerModel(service),
 		blockSites: pages.NewBlockSitesModel(service),
+		blockList:  pages.NewBlockListModel(service),
 		help:       help.New(),
 		service:    service,
 	}
@@ -74,6 +75,10 @@ func (m *RootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case common.NavigateMsg:
 		m.page = msg.Target
+
+		if m.page == common.BlockListPage {
+			return m, common.FetchBlockedSitesCmd(*m.service)
+		}
 		return m, nil
 
 	case tea.WindowSizeMsg:
@@ -81,6 +86,7 @@ func (m *RootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.height = msg.Height
 		m.help.Width = msg.Width
 
+		
 	case common.StartTimerMsg:
 		m.page = common.TimerPage
 
@@ -100,6 +106,8 @@ func (m *RootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.timer, cmd = m.timer.Update(msg)
 	case common.BlockSitesPage:
 		m.blockSites, cmd = m.blockSites.Update(msg)
+	case common.BlockListPage:
+		m.blockList, cmd = m.blockList.Update(msg)
 	}
 
 	return m, cmd
@@ -117,10 +125,13 @@ func (m *RootModel) View() string {
 		pageView = m.timer.View()
 	case common.BlockSitesPage:
 		pageView = m.blockSites.View()
+	case common.BlockListPage:
+		pageView = m.blockList.View()
 	}
 
 	helpView := m.help.View(m.currentPageKeys())
 
+	// Calculate how many lines the page and help take, and add spacing to push the help to the bottom
 	pageLines := strings.Count(pageView, "\n") + 1
 	helpLines := strings.Count(helpView, "\n") + 1
 
@@ -148,6 +159,8 @@ func (m *RootModel) currentPageKeys() help.KeyMap {
 		pageModel = m.timer
 	case common.BlockSitesPage:
 		pageModel = m.blockSites
+	case common.BlockListPage:
+		pageModel = m.blockList
 	}
 
 	if pk, ok := pageModel.(PageKeys); ok {

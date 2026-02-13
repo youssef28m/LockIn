@@ -171,7 +171,7 @@ func (m SetTimerModel) View() string {
 		Bold(true).
 		Align(lipgloss.Center).
 		Width(60).
-		Render("▶ Press Enter to Start")
+		Render("Press Enter to Start")
 
 	return fmt.Sprintf(
 		"\n%s\n\n%s\n%s%s\n",

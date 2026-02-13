@@ -68,7 +68,6 @@ func (s *AppService) CreateAndStartSession(duration int) error {
 }
 
 
-
 func (s *AppService) AddBlockedSite(domain string) error {
 	validDomain := validator.IsValidDomain(domain)
 	if !validDomain {
@@ -132,3 +131,46 @@ func HaveActiveSession(db *sql.DB) (bool, error) {
 
 }
 
+func (s *AppService) RemoveBlockedSite(domain string) error {
+
+	var siteId int64
+
+	sites, err := storage.GetAllBlockedSites(s.db)
+	if err != nil {
+		return err
+	}
+
+	// Check if the site is in the blocked list
+	found := false
+	for _, site := range sites {
+		if site.Domain == domain {
+			siteId = site.ID
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		return fmt.Errorf("site not found in blocked list")
+	}
+
+
+	err = storage.DeleteBlockedSite(s.db, siteId)
+	if err != nil {
+		return err
+	}
+
+	// unblock the site immediately if there is an active session
+	haveActiveSession, err := HaveActiveSession(s.db)
+	if err != nil {
+		return err
+	}
+	if haveActiveSession {
+		err := blocker.UnblockSite(domain)
+		if err != nil {
+			return err
+		}
+	}
+	
+	return nil
+}

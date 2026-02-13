@@ -3,15 +3,14 @@ package common
 import "github.com/charmbracelet/lipgloss"
 
 var (
-	PrimaryColor   = lipgloss.Color("#4361EE") // Royal Blue
-	AccentColor    = lipgloss.Color("#A8DADC") // Ice Blue
-	SuccessColor   = lipgloss.Color("#dc596f") // Dusty Lavender
-	ErrorColor     = lipgloss.Color("#E63946") // Soft red
+	PrimaryColor   = lipgloss.Color("#7AA2F7") // Tokyo Blue
+	AccentColor    = lipgloss.Color("#BB9AF7") // Tokyo Purple
+	SuccessColor   = lipgloss.Color("#9ECE6A") // Tokyo Green
+	ErrorColor     = lipgloss.Color("#F7768E") // Tokyo Red
 
 	TitleStyle = lipgloss.NewStyle().
 			Foreground(SuccessColor).
 			Bold(true).
-			MarginLeft(2).
 			Border(lipgloss.NormalBorder(), false, false, false, true).
 			BorderForeground(PrimaryColor).
 			PaddingLeft(1)
