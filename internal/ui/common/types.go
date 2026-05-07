@@ -20,6 +20,10 @@ type BlockedListLoadedMsg struct {
     Sites []string
 }
 
+type BlockedListErrorMsg struct {
+    Err error
+}
+
 // The sub-models can return this without knowing about the Root
 type NavigateMsg struct {
     Target Page

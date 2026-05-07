@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"time"
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/youssef28m/LockIn/internal/models"
@@ -147,7 +148,7 @@ func UpdateSession(db *sql.DB, session models.Session) error {
 	}
 
 	if rowsAffected == 0 {
-		return fmt.Errorf("no user found with id %d", session.ID)
+		return fmt.Errorf("no session found with id %d", session.ID)
 	}
 
 	return nil
@@ -194,6 +195,15 @@ func GetActiveSessions(db *sql.DB) ([]models.Session, error) {
 	}
 
 	return sessions, row.Err()
+}
+
+func DeleteExpiredSessions(db *sql.DB) error {
+	now := time.Now().Unix()
+	_, err := db.Exec(
+		`DELETE FROM sessions WHERE active = 0 OR (active = 1 AND start_time + duration_seconds < ?)`,
+		now,
+	)
+	return err
 }
 
 //***********************************************************//

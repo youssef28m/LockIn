@@ -57,9 +57,6 @@ func (m HomeModel) Update(msg tea.Msg) (HomeModel, tea.Cmd) {
 				return m, common.NavigateTo(common.BlockListPage)
 			}
 
-		case "q", "Q", "ctrl+c":
-			return m, tea.Quit
-
 		case "down", "k":
 			if m.cursor < len(choices)-1 {
 				m.cursor++

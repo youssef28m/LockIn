@@ -84,14 +84,18 @@ func (b BlockListModel) Update(msg tea.Msg) (BlockListModel, tea.Cmd) {
 		for i, site := range msg.Sites {
 			items[i] = siteItem(site)
 		}
-		// Update the list's data
 		b.list.SetItems(items)
+		b.err = nil
+
+	case common.BlockedListErrorMsg:
+		b.err = msg.Err
 
 	case tea.KeyMsg:
+		b.err = nil
+
 		switch msg.String() {
 		case "x", "backspace":
 			if i, ok := b.list.SelectedItem().(siteItem); ok {
-				// Remove the site from the service
 				siteToDelete := string(i)
 				err := b.service.RemoveBlockedSite(siteToDelete)
 				if err != nil {
@@ -101,7 +105,6 @@ func (b BlockListModel) Update(msg tea.Msg) (BlockListModel, tea.Cmd) {
 
 				b.list.RemoveItem(b.list.Index())
 
-				// refresh the list from the service to ensure it's up to date
 				return b, common.FetchBlockedSitesCmd(*b.service)
 			}
 		case "esc":
@@ -116,7 +119,11 @@ func (b BlockListModel) Update(msg tea.Msg) (BlockListModel, tea.Cmd) {
 }
 
 func (b BlockListModel) View() string {
-	return b.list.View()
+	view := b.list.View()
+	if b.err != nil {
+		view += "\n" + common.ErrorStyle.Render(b.err.Error())
+	}
+	return view
 }
 
 // ================================================================

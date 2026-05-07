@@ -56,9 +56,10 @@ func (m BlockSitesModel) Keys() help.KeyMap {
 //================= BlockSites Model =================//
 
 type BlockSitesModel struct {
-    textInput textinput.Model
-    err       error
-    service   *service.AppService
+    textInput  textinput.Model
+    err        error
+    successMsg string
+    service    *service.AppService
 }
 
 
@@ -87,7 +88,8 @@ func (m BlockSitesModel) Update(msg tea.Msg) (BlockSitesModel, tea.Cmd) {
 
     switch msg := msg.(type) {
     case tea.KeyMsg:
-        m.err = nil // Clear previous error on any key press
+        m.err = nil
+        m.successMsg = ""
 
         switch msg.String() {
         case "enter":
@@ -96,12 +98,12 @@ func (m BlockSitesModel) Update(msg tea.Msg) (BlockSitesModel, tea.Cmd) {
             if err != nil {
                 m.err = err
             } else {
-                m.err = nil
+                m.successMsg = "✓ " + domain + " added"
             }
-            
-			m.textInput.Reset()
+
+            m.textInput.Reset()
             return m, nil
-            
+
         case "esc":
             return m, common.NavigateTo(common.HomePage)
         }
@@ -122,9 +124,13 @@ var (
 
 func (m BlockSitesModel) View() string {
     var errView string
+    var successView string
 
     if m.err != nil {
         errView = common.ErrorStyle.Render("\n " + m.err.Error())
+    }
+    if m.successMsg != "" {
+        successView = "\n " + lipgloss.NewStyle().Foreground(common.SuccessColor).Render(m.successMsg)
     }
 
     return lipgloss.JoinVertical(
@@ -133,5 +139,6 @@ func (m BlockSitesModel) View() string {
         "\nEnter the domain you want to restrict:",
         inputContainerStyle.Render(m.textInput.View()),
         errView,
+        successView,
     )
 }

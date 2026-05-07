@@ -9,7 +9,7 @@ func FetchBlockedSitesCmd(s service.AppService) tea.Cmd {
 	return func() tea.Msg {
 		sites, err := s.GetBlockedSites()
 		if err != nil {
-			return err
+			return BlockedListErrorMsg{Err: err}
 		}
 		return BlockedListLoadedMsg{Sites: sites}
 	}
