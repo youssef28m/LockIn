@@ -14,3 +14,13 @@ func FetchBlockedSitesCmd(s service.AppService) tea.Cmd {
 		return BlockedListLoadedMsg{Sites: sites}
 	}
 }
+
+func FetchBlockedAppsCmd(s service.AppService) tea.Cmd {
+	return func() tea.Msg {
+		apps, err := s.GetBlockedApps()
+		if err != nil {
+			return BlockedAppsListErrorMsg{Err: err}
+		}
+		return BlockedAppsListLoadedMsg{Apps: apps}
+	}
+}

@@ -134,6 +134,63 @@ func HaveActiveSession(db *sql.DB) (bool, error) {
 
 }
 
+func (s *AppService) AddBlockedApp(processName string) error {
+	if processName == "" {
+		return fmt.Errorf("process name cannot be empty")
+	}
+
+	_, err := storage.CreateBlockedApp(s.db, processName)
+	if err != nil {
+		return err
+	}
+
+	haveActiveSession, err := HaveActiveSession(s.db)
+	if err != nil {
+		return err
+	}
+	if haveActiveSession {
+		_ = blocker.BlockApps(s.db)
+	}
+
+	return nil
+}
+
+func (s *AppService) GetBlockedApps() ([]string, error) {
+	blockedApps, err := storage.GetAllBlockedApps(s.db)
+	if err != nil {
+		return nil, err
+	}
+
+	var apps []string
+	for _, app := range blockedApps {
+		apps = append(apps, app.ProcessName)
+	}
+	return apps, nil
+}
+
+func (s *AppService) RemoveBlockedApp(processName string) error {
+	apps, err := storage.GetAllBlockedApps(s.db)
+	if err != nil {
+		return err
+	}
+
+	found := false
+	var appId int64
+	for _, app := range apps {
+		if app.ProcessName == processName {
+			appId = app.ID
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		return fmt.Errorf("app not found in blocked list")
+	}
+
+	return storage.DeleteBlockedApp(s.db, appId)
+}
+
 func (s *AppService) RemoveBlockedSite(domain string) error {
 
 	var siteId int64

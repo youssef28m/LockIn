@@ -10,6 +10,7 @@ const (
     TimerPage
     BlockSitesPage
     BlockListPage
+    BlockAppsPage
 )
 
 type StartTimerMsg struct {
@@ -21,6 +22,14 @@ type BlockedListLoadedMsg struct {
 }
 
 type BlockedListErrorMsg struct {
+    Err error
+}
+
+type BlockedAppsListLoadedMsg struct {
+    Apps []string
+}
+
+type BlockedAppsListErrorMsg struct {
     Err error
 }
 

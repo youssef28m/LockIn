@@ -55,6 +55,9 @@ func (m HomeModel) Update(msg tea.Msg) (HomeModel, tea.Cmd) {
 
 			case "Show Block list":
 				return m, common.NavigateTo(common.BlockListPage)
+
+			case "Block an App":
+				return m, common.NavigateTo(common.BlockAppsPage)
 			}
 
 		case "down", "k":
@@ -100,6 +103,7 @@ func (m HomeModel) View() string {
 var choices = []string{
 	"Add website to block list",
 	"Show Block list",
+	"Block an App",
 	"Set Timer",
 }
 

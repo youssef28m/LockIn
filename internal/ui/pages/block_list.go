@@ -1,74 +1,34 @@
 package pages
 
 import (
+	"strings"
+
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
-	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/lipgloss"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/youssef28m/LockIn/internal/service"
 	"github.com/youssef28m/LockIn/internal/ui/common"
 )
 
-// 1. Create a custom item type for the list
-type siteItem string
+type listTab int
 
-func (s siteItem) FilterValue() string { return string(s) }
-func (s siteItem) Title() string       { return string(s) }
-func (s siteItem) Description() string { return "" }
+const (
+	sitesTab listTab = iota
+	appsTab
+)
 
 type BlockListModel struct {
-	list    list.Model
-	service *service.AppService
+	sites   []string
+	apps    []string
+	tab     listTab
+	cursor  int
 	err     error
+	service *service.AppService
 }
 
 func NewBlockListModel(s *service.AppService) BlockListModel {
-
-	delegate := list.NewDefaultDelegate()
-
-	delegate.SetHeight(1)
-	delegate.SetSpacing(0)
-	delegate.ShowDescription = false
-
-	// Style the normal (unselected) items
-	delegate.Styles.NormalTitle = delegate.Styles.NormalTitle.
-		Foreground(common.PrimaryColor).
-		PaddingLeft(2).
-		MarginLeft(0).
-        MarginBottom(1)
-
-	// Style the selected item with accent color and left border indicator
-	delegate.Styles.SelectedTitle = delegate.Styles.SelectedTitle.
-		Foreground(common.AccentColor).
-		Bold(true).
-		PaddingLeft(1).
-		MarginLeft(0).
-        MarginBottom(1).
-		BorderLeft(true).
-		BorderStyle(lipgloss.NormalBorder()).
-		BorderForeground(common.SuccessColor)
-
-	// Style the dimmed (when not focused) title
-	delegate.Styles.DimmedTitle = delegate.Styles.DimmedTitle.
-		Foreground(common.PrimaryColor).
-		Faint(true).
-		PaddingLeft(2)
-
-	l := list.New([]list.Item{}, delegate, 20, 12)
-
-	l.Title = "🔒 Blocked Sites"
-
-	l.Styles.Title = common.TitleStyle
-	l.Styles.PaginationStyle = common.LabelStyle
-	l.Styles.HelpStyle = common.LabelStyle
-
-	l.SetShowStatusBar(false)
-	l.SetFilteringEnabled(false)
-	l.SetShowHelp(false)
-
 	return BlockListModel{
-		list:    l,
 		service: s,
 	}
 }
@@ -80,50 +40,140 @@ func (b BlockListModel) Init() tea.Cmd {
 func (b BlockListModel) Update(msg tea.Msg) (BlockListModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case common.BlockedListLoadedMsg:
-		items := make([]list.Item, len(msg.Sites))
-		for i, site := range msg.Sites {
-			items[i] = siteItem(site)
-		}
-		b.list.SetItems(items)
+		b.sites = msg.Sites
 		b.err = nil
+		return b, nil
+
+	case common.BlockedAppsListLoadedMsg:
+		b.apps = msg.Apps
+		b.err = nil
+		return b, nil
 
 	case common.BlockedListErrorMsg:
 		b.err = msg.Err
+		return b, nil
+
+	case common.BlockedAppsListErrorMsg:
+		b.err = msg.Err
+		return b, nil
 
 	case tea.KeyMsg:
 		b.err = nil
 
 		switch msg.String() {
+		case "left":
+			if b.tab != sitesTab {
+				b.tab = sitesTab
+				b.cursor = 0
+			}
+			return b, nil
+
+		case "right":
+			if b.tab != appsTab {
+				b.tab = appsTab
+				b.cursor = 0
+			}
+			return b, nil
+
+		case "up", "k":
+			if b.cursor > 0 {
+				b.cursor--
+			}
+			return b, nil
+
+		case "down", "j":
+			items := b.currentItems()
+			if b.cursor < len(items)-1 {
+				b.cursor++
+			}
+			return b, nil
+
 		case "x", "backspace":
-			if i, ok := b.list.SelectedItem().(siteItem); ok {
-				siteToDelete := string(i)
-				err := b.service.RemoveBlockedSite(siteToDelete)
-				if err != nil {
+			if b.tab == sitesTab && len(b.sites) > 0 {
+				name := b.sites[b.cursor]
+				if err := b.service.RemoveBlockedSite(name); err != nil {
 					b.err = err
 					return b, nil
 				}
-
-				b.list.RemoveItem(b.list.Index())
-
 				return b, common.FetchBlockedSitesCmd(*b.service)
 			}
+			if b.tab == appsTab && len(b.apps) > 0 {
+				name := b.apps[b.cursor]
+				if err := b.service.RemoveBlockedApp(name); err != nil {
+					b.err = err
+					return b, nil
+				}
+				return b, common.FetchBlockedAppsCmd(*b.service)
+			}
+			return b, nil
+
 		case "esc":
 			return b, common.NavigateTo(common.HomePage)
 		}
 	}
 
-	var cmd tea.Cmd
-	b.list, cmd = b.list.Update(msg)
+	return b, nil
+}
 
-	return b, cmd
+func (b BlockListModel) currentItems() []string {
+	if b.tab == sitesTab {
+		return b.sites
+	}
+	return b.apps
 }
 
 func (b BlockListModel) View() string {
-	view := b.list.View()
-	if b.err != nil {
-		view += "\n" + common.ErrorStyle.Render(b.err.Error())
+	var s strings.Builder
+
+	s.WriteString(common.TitleStyle.Render("\nBlocked List\n"))
+
+	activeTabStyle := lipgloss.NewStyle().
+		Foreground(common.AccentColor).
+		Bold(true).
+		Padding(0, 1)
+
+	inactiveTabStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("240")).
+		Padding(0, 1)
+
+	s.WriteString("\n")
+	if b.tab == sitesTab {
+		s.WriteString(activeTabStyle.Render("● Websites"))
+		s.WriteString(inactiveTabStyle.Render("Apps"))
+	} else {
+		s.WriteString(inactiveTabStyle.Render("Websites"))
+		s.WriteString(activeTabStyle.Render("● Apps"))
 	}
-	return view
+	s.WriteString("\n\n")
+
+	items := b.currentItems()
+	if len(items) > 0 {
+		for i, item := range items {
+			var itemStyle lipgloss.Style
+			if i == b.cursor {
+				itemStyle = lipgloss.NewStyle().
+					Foreground(common.AccentColor).
+					Bold(true).
+					PaddingLeft(1).
+					BorderLeft(true).
+					BorderStyle(lipgloss.NormalBorder()).
+					BorderForeground(common.SuccessColor)
+			} else {
+				itemStyle = lipgloss.NewStyle().
+					Foreground(common.PrimaryColor).
+					PaddingLeft(2)
+			}
+			s.WriteString(itemStyle.Render(item) + "\n")
+		}
+	} else {
+		s.WriteString(common.LabelStyle.Render(" (none)\n"))
+	}
+
+	if b.err != nil {
+		s.WriteString("\n" + common.ErrorStyle.Render(" " + b.err.Error()))
+	}
+
+	return s.String()
 }
 
 // ================================================================
@@ -133,40 +183,28 @@ func (b BlockListModel) View() string {
 type BlockListKeyMap struct {
 	Help   key.Binding
 	Quit   key.Binding
+	Switch key.Binding
 	Delete key.Binding
 	Back   key.Binding
 }
 
-// ShortHelp returns bindings to show in the small help view
 func (k BlockListKeyMap) ShortHelp() []key.Binding {
-	return []key.Binding{k.Delete, k.Back, k.Help, k.Quit}
+	return []key.Binding{k.Switch, k.Delete, k.Back, k.Help, k.Quit}
 }
 
-// FullHelp returns bindings for the expanded help view (when '?' is pressed)
 func (k BlockListKeyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
-		{k.Delete, k.Back},
-		{k.Help, k.Quit},
+		{k.Switch, k.Delete},
+		{k.Back, k.Help, k.Quit},
 	}
 }
 
 var blockListKeys = BlockListKeyMap{
-	Help: key.NewBinding(
-		key.WithKeys("?"),
-		key.WithHelp("?", "toggle help"),
-	),
-	Quit: key.NewBinding(
-		key.WithKeys("q", "ctrl+c"),
-		key.WithHelp("q", "quit"),
-	),
-	Delete: key.NewBinding(
-		key.WithKeys("x", "backspace"),
-		key.WithHelp("x", "delete site"),
-	),
-	Back: key.NewBinding(
-		key.WithKeys("esc"),
-		key.WithHelp("esc", "back"),
-	),
+	Help:   key.NewBinding(key.WithKeys("?"), key.WithHelp("?", "toggle help")),
+	Quit:   key.NewBinding(key.WithKeys("q", "ctrl+c"), key.WithHelp("q", "quit")),
+	Switch: key.NewBinding(key.WithKeys("left", "right"), key.WithHelp("←/→", "switch tab")),
+	Delete: key.NewBinding(key.WithKeys("x", "backspace"), key.WithHelp("x", "delete")),
+	Back:   key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "back")),
 }
 
 func (m BlockListModel) Keys() help.KeyMap {

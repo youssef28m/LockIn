@@ -2,7 +2,7 @@ package ui
 
 import (
 	"strings"
-	
+
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
@@ -22,6 +22,7 @@ type RootModel struct {
 	timer      pages.TimerModel
 	blockSites pages.BlockSitesModel
 	blockList  pages.BlockListModel
+	blockApps  pages.BlockAppsModel
 	help       help.Model
 	service    *service.AppService
 	width      int
@@ -36,6 +37,7 @@ func NewRootModel(service *service.AppService) *RootModel {
 		timer:      pages.NewTimerModel(service),
 		blockSites: pages.NewBlockSitesModel(service),
 		blockList:  pages.NewBlockListModel(service),
+		blockApps:  pages.NewBlockAppsModel(service),
 		help:       help.New(),
 		service:    service,
 	}
@@ -73,11 +75,15 @@ func (m *RootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 
-	case common.NavigateMsg:
+ 	case common.NavigateMsg:
 		m.page = msg.Target
 
-		if m.page == common.BlockListPage {
-			return m, common.FetchBlockedSitesCmd(*m.service)
+		switch m.page {
+		case common.BlockListPage:
+			return m, tea.Batch(
+				common.FetchBlockedSitesCmd(*m.service),
+				common.FetchBlockedAppsCmd(*m.service),
+			)
 		}
 		return m, nil
 
@@ -108,6 +114,8 @@ func (m *RootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.blockSites, cmd = m.blockSites.Update(msg)
 	case common.BlockListPage:
 		m.blockList, cmd = m.blockList.Update(msg)
+	case common.BlockAppsPage:
+		m.blockApps, cmd = m.blockApps.Update(msg)
 	}
 
 	return m, cmd
@@ -125,8 +133,10 @@ func (m *RootModel) View() string {
 		pageView = m.timer.View()
 	case common.BlockSitesPage:
 		pageView = m.blockSites.View()
-	case common.BlockListPage:
+ 	case common.BlockListPage:
 		pageView = m.blockList.View()
+	case common.BlockAppsPage:
+		pageView = m.blockApps.View()
 	}
 
 	helpView := m.help.View(m.currentPageKeys())
@@ -159,8 +169,10 @@ func (m *RootModel) currentPageKeys() help.KeyMap {
 		pageModel = m.timer
 	case common.BlockSitesPage:
 		pageModel = m.blockSites
-	case common.BlockListPage:
+ 	case common.BlockListPage:
 		pageModel = m.blockList
+	case common.BlockAppsPage:
+		pageModel = m.blockApps
 	}
 
 	if pk, ok := pageModel.(PageKeys); ok {
