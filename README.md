@@ -13,7 +13,7 @@ A terminal-based focus app that blocks distracting websites during timed focus s
 ## Build & Run
 
 ```bash
-  go build -o lockin ./cmd
+go build -o lockin ./cmd
 sudo ./lockin        # Linux/macOS
 .\lockin.exe           # Windows (run as Admin)
 ```
