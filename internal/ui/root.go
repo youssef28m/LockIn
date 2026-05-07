@@ -23,6 +23,7 @@ type RootModel struct {
 	blockSites pages.BlockSitesModel
 	blockList  pages.BlockListModel
 	blockApps  pages.BlockAppsModel
+	history    pages.HistoryModel
 	help       help.Model
 	service    *service.AppService
 	width      int
@@ -38,6 +39,7 @@ func NewRootModel(service *service.AppService) *RootModel {
 		blockSites: pages.NewBlockSitesModel(service),
 		blockList:  pages.NewBlockListModel(service),
 		blockApps:  pages.NewBlockAppsModel(service),
+		history:    pages.NewHistoryModel(service),
 		help:       help.New(),
 		service:    service,
 	}
@@ -84,6 +86,8 @@ func (m *RootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				common.FetchBlockedSitesCmd(*m.service),
 				common.FetchBlockedAppsCmd(*m.service),
 			)
+		case common.HistoryPage:
+			return m, common.FetchHistoryCmd(*m.service)
 		}
 		return m, nil
 
@@ -116,6 +120,8 @@ func (m *RootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.blockList, cmd = m.blockList.Update(msg)
 	case common.BlockAppsPage:
 		m.blockApps, cmd = m.blockApps.Update(msg)
+	case common.HistoryPage:
+		m.history, cmd = m.history.Update(msg)
 	}
 
 	return m, cmd
@@ -135,8 +141,10 @@ func (m *RootModel) View() string {
 		pageView = m.blockSites.View()
  	case common.BlockListPage:
 		pageView = m.blockList.View()
-	case common.BlockAppsPage:
+ 	case common.BlockAppsPage:
 		pageView = m.blockApps.View()
+	case common.HistoryPage:
+		pageView = m.history.View()
 	}
 
 	helpView := m.help.View(m.currentPageKeys())
@@ -171,8 +179,10 @@ func (m *RootModel) currentPageKeys() help.KeyMap {
 		pageModel = m.blockSites
  	case common.BlockListPage:
 		pageModel = m.blockList
-	case common.BlockAppsPage:
+ 	case common.BlockAppsPage:
 		pageModel = m.blockApps
+	case common.HistoryPage:
+		pageModel = m.history
 	}
 
 	if pk, ok := pageModel.(PageKeys); ok {

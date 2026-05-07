@@ -168,6 +168,20 @@ func (s *AppService) GetBlockedApps() ([]string, error) {
 	return apps, nil
 }
 
+func (s *AppService) GetSessionHistory() ([]models.Session, error) {
+	allSessions, err := storage.GetAllSessions(s.db)
+	if err != nil {
+		return nil, err
+	}
+	var completed []models.Session
+	for _, session := range allSessions {
+		if !session.Active {
+			completed = append(completed, session)
+		}
+	}
+	return completed, nil
+}
+
 func (s *AppService) RemoveBlockedApp(processName string) error {
 	apps, err := storage.GetAllBlockedApps(s.db)
 	if err != nil {

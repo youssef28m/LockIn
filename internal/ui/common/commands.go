@@ -24,3 +24,13 @@ func FetchBlockedAppsCmd(s service.AppService) tea.Cmd {
 		return BlockedAppsListLoadedMsg{Apps: apps}
 	}
 }
+
+func FetchHistoryCmd(s service.AppService) tea.Cmd {
+	return func() tea.Msg {
+		history, err := s.GetSessionHistory()
+		if err != nil {
+			return HistoryErrorMsg{Err: err}
+		}
+		return HistoryLoadedMsg{Sessions: history}
+	}
+}

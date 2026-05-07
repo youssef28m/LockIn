@@ -58,6 +58,9 @@ func (m HomeModel) Update(msg tea.Msg) (HomeModel, tea.Cmd) {
 
 			case "Block an App":
 				return m, common.NavigateTo(common.BlockAppsPage)
+
+			case "Session History":
+				return m, common.NavigateTo(common.HistoryPage)
 			}
 
 		case "down", "k":
@@ -105,6 +108,7 @@ var choices = []string{
 	"Show Block list",
 	"Block an App",
 	"Set Timer",
+	"Session History",
 }
 
 // ================================================================

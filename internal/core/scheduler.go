@@ -37,19 +37,13 @@ func checkSessionExpiration(db *sql.DB) {
 		return
 	}
 
-	expiredFound := false
 	for _, session := range sessions {
 		if session.Active && session.Expired() {
 			session.Stop()
 
 			blocker.UnblockWebsites(db)
 			storage.UpdateSession(db, session)
-			expiredFound = true
 		}
-	}
-
-	if expiredFound {
-		storage.DeleteExpiredSessions(db)
 	}
 }
 
