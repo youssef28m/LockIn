@@ -21,6 +21,15 @@ func init() {
 	}
 }
 
+func CheckWriteAccess() error {
+	f, err := os.OpenFile(hostsPath, os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	f.Close()
+	return nil
+}
+
 func BlockWebsites(db *sql.DB) error {
 	sites, err := storage.GetAllBlockedSites(db)
 	if err != nil {

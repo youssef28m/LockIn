@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 	"os"
-	"runtime"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/youssef28m/LockIn/internal/blocker"
 	"github.com/youssef28m/LockIn/internal/core"
 	"github.com/youssef28m/LockIn/internal/service"
 	"github.com/youssef28m/LockIn/internal/storage"
@@ -14,16 +14,20 @@ import (
 
 
 func checkPrivileges() {
-	if runtime.GOOS != "windows" && os.Geteuid() != 0 {
-		fmt.Println("========================================")
-		fmt.Println("  NOT RUNNING AS ROOT")
-		fmt.Println("  Website blocking will NOT work.")
-		fmt.Println("  The hosts file (/etc/hosts)")
-		fmt.Println("  requires root to modify.")
-		fmt.Println()
-		fmt.Println("  Run with: sudo", os.Args[0])
-		fmt.Println("========================================")
-		fmt.Println()
+	if err := blocker.CheckWriteAccess(); err != nil {
+		fmt.Println("")
+		fmt.Println("  ╔══════════════════════════════════════════════════╗")
+		fmt.Println("  ║            INSUFFICIENT PRIVILEGES               ║")
+		fmt.Println("  ╠══════════════════════════════════════════════════╣")
+		fmt.Println("  ║  LockIn needs administrator privileges to        ║")
+		fmt.Println("  ║  block websites by modifying the system hosts    ║")
+		fmt.Println("  ║  file.                                           ║")
+		fmt.Println("  ║                                                  ║")
+		fmt.Println("  ║  Run the app again as root / Administrator.      ║")
+		fmt.Println("  ║                                                  ║")
+		fmt.Println("  ╚══════════════════════════════════════════════════╝")
+		fmt.Println("")
+		os.Exit(1)
 	}
 }
 
