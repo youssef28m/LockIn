@@ -2,13 +2,24 @@ package blocker
 
 import (
 	"database/sql"
-	"os"
-	"strings"
 	"fmt"
+	"os"
+	"runtime"
+	"strings"
+
 	"github.com/youssef28m/LockIn/internal/storage"
 )
 
-var hostsPath = `C:\Windows\System32\drivers\etc\hosts`
+var hostsPath string
+
+func init() {
+	switch runtime.GOOS {
+	case "windows":
+		hostsPath = `C:\Windows\System32\drivers\etc\hosts`
+	default:
+		hostsPath = "/etc/hosts"
+	}
+}
 
 func BlockWebsites(db *sql.DB) error {
 	sites, err := storage.GetAllBlockedSites(db)
@@ -39,32 +50,48 @@ func UnblockWebsites(db *sql.DB) error {
 	return nil
 }
 
+func getDomainVariants(domain string) []string {
+	domain = strings.TrimSpace(domain)
 
+	if strings.HasPrefix(domain, "www.") {
+		return []string{domain, strings.TrimPrefix(domain, "www.")}
+	}
 
+	return []string{domain, "www." + domain}
+}
 
 func BlockSite(domain string) error {
-	entry := "127.0.0.1    " + domain
+	entries := getDomainVariants(domain)
 
 	file, err := os.ReadFile(hostsPath)
 	if err != nil {
 		return err
 	}
 
-	if strings.Contains(string(file), entry) {
-		return nil // already blocked
-	}
-
+	existing := string(file)
 	f, err := os.OpenFile(hostsPath, os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
 
-	_, err = f.WriteString("\n" + entry)
-	return err
+	for _, hostname := range entries {
+		entry := "127.0.0.1    " + hostname
+		if strings.Contains(existing, entry) {
+			continue
+		}
+
+		_, err = f.WriteString("\n" + entry)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func UnblockSite(domain string) error {
+	entries := getDomainVariants(domain)
 
 	file, err := os.ReadFile(hostsPath)
 	if err != nil {
@@ -75,11 +102,18 @@ func UnblockSite(domain string) error {
 
 	var result []string
 	for _, line := range lines {
-		if !strings.Contains(line, domain) {
+		trimmed := strings.TrimSpace(line)
+		remove := false
+		for _, hostname := range entries {
+			if trimmed == "127.0.0.1    "+hostname {
+				remove = true
+				break
+			}
+		}
+		if !remove {
 			result = append(result, line)
 		}
 	}
 
 	return os.WriteFile(hostsPath, []byte(strings.Join(result, "\n")), 0644)
-
 }

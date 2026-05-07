@@ -59,10 +59,13 @@ func TestBlockSite(t *testing.T) {
 		t.Fatalf("Failed to block site: %v", err)
 	}
 
-	// Verify entry was added
+	// Verify entry was added, including the www variant
 	content, _ := os.ReadFile(tempHostsPath)
 	if !strings.Contains(string(content), entry) {
 		t.Errorf("Expected entry '%s' not found in hosts file", entry)
+	}
+	if !strings.Contains(string(content), "127.0.0.1    www.test.example.com") {
+		t.Errorf("Expected entry '127.0.0.1    www.test.example.com' not found in hosts file")
 	}
 }
 
@@ -90,11 +93,11 @@ func TestBlockSiteDuplicate(t *testing.T) {
 		t.Fatalf("Second block failed: %v", err)
 	}
 
-	// Check that it's only added once
+	// Check that the exact domain line is only added once
 	content, _ := os.ReadFile(tempHostsPath)
-	count := strings.Count(string(content), "duplicate.example.com")
+	count := strings.Count(string(content), "127.0.0.1    duplicate.example.com")
 	if count != 1 {
-		t.Errorf("Expected domain to appear once, but appeared %d times", count)
+		t.Errorf("Expected exact domain line to appear once, but appeared %d times", count)
 	}
 }
 

@@ -6,17 +6,16 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/youssef28m/LockIn/internal/models"
 )
 
 func Connect() *sql.DB {
-
 	home, _ := os.UserHomeDir()
 	dbDir := filepath.Join(home, ".lockin")
 	dbPath := filepath.Join(dbDir, "LockIn.db")
 
-	// Create directory if it doesn't exist
 	err := os.MkdirAll(dbDir, 0755)
 	if err != nil {
 		log.Fatal("Error creating database directory:", err)
@@ -26,14 +25,13 @@ func Connect() *sql.DB {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	createTables(db)
+
 	return db
 }
 
-func CreateDB() {
-	db := Connect()
-	defer db.Close()
-
-	// Create sessions table
+func createTables(db *sql.DB) {
 	sessionsSQL := `CREATE TABLE IF NOT EXISTS sessions (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		start_time INTEGER NOT NULL,
@@ -41,35 +39,21 @@ func CreateDB() {
 		active INTEGER NOT NULL
 	);`
 
-	_, err := db.Exec(sessionsSQL)
-	if err != nil {
-		log.Fatal("Error creating sessions table:", err)
-	}
-
-
-	// Create blocked_sites table
 	blockedSitesSQL := `CREATE TABLE IF NOT EXISTS blocked_sites (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		domain TEXT NOT NULL
 	);`
 
-	_, err = db.Exec(blockedSitesSQL)
-	if err != nil {
-		log.Fatal("Error creating blocked_sites table:", err)
-	}
-
-
-	// Create blocked_apps table
 	blockedAppsSQL := `CREATE TABLE IF NOT EXISTS blocked_apps (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		process_name TEXT NOT NULL
 	);`
 
-	_, err = db.Exec(blockedAppsSQL)
-	if err != nil {
-		log.Fatal("Error creating blocked_apps table:", err)
+	for _, q := range []string{sessionsSQL, blockedSitesSQL, blockedAppsSQL} {
+		if _, err := db.Exec(q); err != nil {
+			log.Fatal("Error creating table:", err)
+		}
 	}
-
 }
 
 //************************************************************//
@@ -147,7 +131,12 @@ func UpdateSession(db *sql.DB, session models.Session) error {
 	WHERE id = ?
 	`
 
-	result, err := db.Exec(query, session.StartTime, session.DurationSeconds, session.Active, session.ID)
+	activeInt := 0
+	if session.Active {
+		activeInt = 1
+	}
+
+	result, err := db.Exec(query, session.StartTime, session.DurationSeconds, activeInt, session.ID)
 	if err != nil {
 		return err
 	}

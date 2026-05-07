@@ -4,11 +4,10 @@ import (
 	"database/sql"
 	"github.com/youssef28m/LockIn/internal/blocker"
 	"github.com/youssef28m/LockIn/internal/storage"
-	"log"
 	"time"
 )
 
-func InitializeScheduler(db *sql.DB, trigger chan struct{}) {
+func InitializeScheduler(db *sql.DB, trigger <-chan struct{}, stop <-chan struct{}) {
 
 	// On startup, check for any active sessions and block sites
 	checkUnblockedSites(db)
@@ -19,12 +18,12 @@ func InitializeScheduler(db *sql.DB, trigger chan struct{}) {
 	for {
 		select {
 		case <-ticker.C:
-			// Periodic cleanup (unblocking expired sessions)
 			checkSessionExpiration(db)
 		case <-trigger:
-			// Instant reaction
 			checkUnblockedSites(db)
 			checkSessionExpiration(db)
+		case <-stop:
+			return
 		}
 	}
 }
@@ -32,7 +31,6 @@ func InitializeScheduler(db *sql.DB, trigger chan struct{}) {
 func checkSessionExpiration(db *sql.DB) {
 	sessions, err := storage.GetAllSessions(db)
 	if err != nil {
-		log.Println("Error fetching sessions:", err)
 		return
 	}
 
@@ -40,17 +38,8 @@ func checkSessionExpiration(db *sql.DB) {
 		if session.Active && session.Expired() {
 			session.Stop()
 
-			// unblock websites/apps
-			err := blocker.UnblockWebsites(db)
-			if err != nil {
-				log.Println("Error unblocking websites:", err)
-			}
-
-			err = storage.UpdateSession(db, session)
-			if err != nil {
-				log.Println("Error updating session:", err)
-				continue
-			}
+			blocker.UnblockWebsites(db)
+			storage.UpdateSession(db, session)
 		}
 	}
 }
@@ -58,16 +47,11 @@ func checkSessionExpiration(db *sql.DB) {
 func checkUnblockedSites(db *sql.DB) {
 	sessions, err := storage.GetAllSessions(db)
 	if err != nil {
-		log.Println("Error fetching sessions:", err)
 		return
 	}
 	for _, session := range sessions {
 		if session.Active && !session.Expired() {
-			// block websites/apps
-			err := blocker.BlockWebsites(db)
-			if err != nil {
-				log.Println("Error blocking websites:", err)
-			}
+			blocker.BlockWebsites(db)
 		}
 	}
 }

@@ -57,12 +57,15 @@ func (s *AppService) CreateAndStartSession(duration int) error {
 		return err
 	}
 
-	// 3. Signal the Scheduler to wake up immediately
-	// We use a non-blocking send so the UI doesn't hang if the scheduler is busy
+	// Block all sites immediately so the user gets feedback if it fails
+	if err := blocker.BlockWebsites(s.db); err != nil {
+		return fmt.Errorf("session created but failed to block sites: %w", err)
+	}
+
+	// Signal the Scheduler to wake up for ongoing management
 	select {
 	case s.notifier <- struct{}{}:
 	default:
-		// Scheduler is already busy/running, no need to queue another signal
 	}
 	return nil
 }

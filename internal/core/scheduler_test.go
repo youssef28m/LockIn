@@ -2,8 +2,6 @@ package core
 
 import (
 	"database/sql"
-	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -13,13 +11,10 @@ import (
 
 // setupTestDB creates a test database with all required tables
 func setupSchedulerTestDB(t *testing.T) *sql.DB {
-	home, _ := os.UserHomeDir()
-	testDbPath := filepath.Join(home, ".lockin", "test_scheduler_LockIn.db")
+	t.Helper()
 
-	// Remove test db if it exists
-	os.Remove(testDbPath)
+	testDbPath := t.TempDir() + "/test_lockin.db"
 
-	// Create new test database
 	db, err := sql.Open("sqlite3", testDbPath)
 	if err != nil {
 		t.Fatalf("Failed to open test database: %v", err)
@@ -43,25 +38,27 @@ func setupSchedulerTestDB(t *testing.T) *sql.DB {
 		process_name TEXT NOT NULL
 	);`
 
-	db.Exec(sessionsSQL)
-	db.Exec(blockedSitesSQL)
-	db.Exec(blockedAppsSQL)
+	_, err = db.Exec(sessionsSQL)
+	if err != nil {
+		t.Fatalf("Failed to create sessions table: %v", err)
+	}
+	_, err = db.Exec(blockedSitesSQL)
+	if err != nil {
+		t.Fatalf("Failed to create blocked_sites table: %v", err)
+	}
+	_, err = db.Exec(blockedAppsSQL)
+	if err != nil {
+		t.Fatalf("Failed to create blocked_apps table: %v", err)
+	}
+
+	t.Cleanup(func() { db.Close() })
 
 	return db
-}
-
-// cleanupSchedulerTestDB removes the test database
-func cleanupSchedulerTestDB(t *testing.T, db *sql.DB) {
-	db.Close()
-	home, _ := os.UserHomeDir()
-	testDbPath := filepath.Join(home, ".lockin", "test_scheduler_LockIn.db")
-	os.Remove(testDbPath)
 }
 
 // TestSessionExpiration tests if a session correctly identifies when it has expired
 func TestSessionExpiration(t *testing.T) {
 	db := setupSchedulerTestDB(t)
-	defer cleanupSchedulerTestDB(t, db)
 
 	// Create a session that expires immediately
 	startTime := time.Now().Unix() - 10 // Started 10 seconds ago
@@ -88,7 +85,7 @@ func TestSessionExpiration(t *testing.T) {
 // TestSessionNotExpired tests if an active, non-expired session is correctly identified
 func TestSessionNotExpired(t *testing.T) {
 	db := setupSchedulerTestDB(t)
-	defer cleanupSchedulerTestDB(t, db)
+
 
 	// Create a session that won't expire soon
 	startTime := time.Now().Unix()
@@ -125,12 +122,18 @@ func TestSessionNotExpired(t *testing.T) {
 // TestSessionStop tests stopping a session
 func TestSessionStop(t *testing.T) {
 	db := setupSchedulerTestDB(t)
-	defer cleanupSchedulerTestDB(t, db)
+
 
 	startTime := time.Now().Unix()
-	sessionID, _ := storage.CreateSession(db, startTime, 3600, true)
+	sessionID, err := storage.CreateSession(db, startTime, 3600, true)
+	if err != nil {
+		t.Fatalf("Failed to create session: %v", err)
+	}
 
-	session, _ := storage.GetSessionByID(db, sessionID)
+	session, err := storage.GetSessionByID(db, sessionID)
+	if err != nil {
+		t.Fatalf("Failed to get session: %v", err)
+	}
 
 	// Verify session is initially active
 	if !session.Active {
@@ -144,13 +147,16 @@ func TestSessionStop(t *testing.T) {
 	}
 
 	// Update in database
-	err := storage.UpdateSession(db, *session)
+	err = storage.UpdateSession(db, *session)
 	if err != nil {
 		t.Fatalf("Failed to update session: %v", err)
 	}
 
 	// Verify in database
-	stoppedSession, _ := storage.GetSessionByID(db, sessionID)
+	stoppedSession, err := storage.GetSessionByID(db, sessionID)
+	if err != nil {
+		t.Fatalf("Failed to get stopped session: %v", err)
+	}
 	if stoppedSession.Active {
 		t.Error("Stopped session should be inactive in database")
 	}
@@ -161,7 +167,7 @@ func TestSessionStop(t *testing.T) {
 // TestMultipleActiveSessionsWithExpired tests scheduler logic with multiple sessions
 func TestMultipleActiveSessionsWithExpired(t *testing.T) {
 	db := setupSchedulerTestDB(t)
-	defer cleanupSchedulerTestDB(t, db)
+
 
 	now := time.Now().Unix()
 
@@ -226,7 +232,7 @@ func TestMultipleActiveSessionsWithExpired(t *testing.T) {
 // TestSessionWithBlockedSites tests sessions with associated blocked sites
 func TestSessionWithBlockedSites(t *testing.T) {
 	db := setupSchedulerTestDB(t)
-	defer cleanupSchedulerTestDB(t, db)
+
 
 	// Create an active session
 	startTime := time.Now().Unix()
@@ -262,7 +268,7 @@ func TestSessionWithBlockedSites(t *testing.T) {
 // TestSessionRemainingTime tests remaining time calculations
 func TestSessionRemainingTime(t *testing.T) {
 	db := setupSchedulerTestDB(t)
-	defer cleanupSchedulerTestDB(t, db)
+
 
 	// Create a session that started 10 minutes ago and lasts 60 minutes
 	startTime := time.Now().Unix() - 600 // 10 minutes ago
@@ -294,8 +300,7 @@ func TestSessionRemainingTime(t *testing.T) {
 
 // TestSessionStart tests the Start method
 func TestSessionStart(t *testing.T) {
-	db := setupSchedulerTestDB(t)
-	defer cleanupSchedulerTestDB(t, db)
+	_ = setupSchedulerTestDB(t)
 
 	// Create an inactive session
 	session := &models.Session{
@@ -323,7 +328,7 @@ func TestSessionStart(t *testing.T) {
 // TestSchedulerSessionFiltering tests filtering sessions for scheduler operations
 func TestSchedulerSessionFiltering(t *testing.T) {
 	db := setupSchedulerTestDB(t)
-	defer cleanupSchedulerTestDB(t, db)
+
 
 	now := time.Now().Unix()
 
@@ -366,7 +371,7 @@ func TestSchedulerSessionFiltering(t *testing.T) {
 // TestSchedulerInitialization tests the initialization logic
 func TestSchedulerInitialization(t *testing.T) {
 	db := setupSchedulerTestDB(t)
-	defer cleanupSchedulerTestDB(t, db)
+
 
 	// Create some active sessions
 	now := time.Now().Unix()
