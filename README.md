@@ -18,23 +18,6 @@ sudo ./lockin        # Linux/macOS
 .\lockin.exe           # Windows (run as Admin)
 ```
 
-
-## Usage
-
-| Key | Action |
-|-----|--------|
-| `↑`/`k`, `↓`/`j` | Navigate menu |
-| `enter` | Select / Start |
-| `esc` | Back to home |
-| `?` | Toggle help |
-| `q` / `ctrl+c` | Quit |
-
-1. **Set Timer** — configure hours/minutes, press enter to start a focus session
-2. **Add website to block list** — enter a domain (e.g. `facebook.com`) to add to the block list
-3. **Show Block list** — view all blocked sites, press `x` or `backspace` to remove one
-
-When a session is active, all sites on the block list are redirected to `127.0.0.1` via your system hosts file. They are automatically unblocked when the session expires or is stopped.
-
 ## Project Structure
 
 ```
@@ -49,7 +32,3 @@ internal/
 └── validator/           Domain and duration validation
 ```
 
-## Cross-Platform
-
-- **Linux/macOS**: modifies `/etc/hosts` (requires root)
-- **Windows**: modifies `C:\Windows\System32\drivers\etc\hosts` (requires Administrator)
